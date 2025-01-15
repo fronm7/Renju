@@ -1,13 +1,12 @@
 #include "UI.h"
 #include "game.h"
 #include "FileIO.h"
-
+//#pragma comment(linker, "/subsystem:windows /entry:mainCRTStartup")
 int main() {
     GameState state;
     Game game;
     UI ui;
     FileIO fileIO;
-
     // 初始化图形化界面
     ui.initUI();
 
@@ -16,10 +15,19 @@ int main() {
         int choice = ui.showMainMenu();
         if (choice == 1) { // 开始新游戏
             game.initGame(state);
+            //进入选子界面
+            int select_choice =ui.showSelectMenu();
+            if (select_choice == 3) {
+                main();
+                return 0;
+            }
+            else {
+                state.init_choice = select_choice;
+            }
             break;
         }
         else if (choice == 2) { // 加载存档
-            if (fileIO.loadGame(state)) {
+            if (fileIO.loadGame(game,state)) {
                 break;
             }
             else {
@@ -36,25 +44,42 @@ int main() {
     // 游戏主循环
     int lastX = -1, lastY = -1; // 记录最后一次落子的位置
     while (!state.isGameOver) {
-        ui.drawBoard(state);
-        if (ui.handleInput(state, lastX, lastY)) { // 处理玩家输入，并更新 lastX 和 lastY
+        ui.drawBoard(state, game); //绘制棋盘、悔棋按钮,显示回合数
+        
+        // AI先手天元
+        if (state.init_choice == 2 && game.turnnumber() == 0) {
+            game.makeMove(state, BOARD_SIZE / 2, BOARD_SIZE / 2);
+        }
+
+        if (MouseHit()) {
+            MOUSEMSG msg = GetMouseMsg();
+
+            // 处理悔棋按钮点击事件
+            if (ui.handleUndoButtonClick(msg)) {
+                if (state.currentPlayer != state.init_choice) {
+                    outtextxy(UNDO_BUTTON_X, UNDO_BUTTON_Y-25, _T("这不是你的回合")); // 提示无法悔棋
+                    Sleep(1000); // 显示提示 1 秒
+                }
+                else if (!game.undoMove(state)) { // 至少有两步才可以悔棋
+                    outtextxy(UNDO_BUTTON_X, UNDO_BUTTON_Y-25, _T("无法悔棋")); // 提示无法悔棋
+                    Sleep(1000); // 显示提示 1 秒
+                }
+            }
+
             // 玩家落子
-            game.makeMove(state, lastX, lastY);
-            if (state.isGameOver == true) {
-                ui.showResult(state); // 显示游戏结果
-                break;
+            if (state.currentPlayer == state.init_choice && ui.handleInput(state, lastX, lastY, msg)) {
+                game.makeMove(state, lastX, lastY);
+                if (state.isGameOver == true) {
+                    break;
+                }
             }
 
             // AI 落子
-            if (state.currentPlayer == 2) {
+            if (state.currentPlayer != state.init_choice) {
                 game.makeAIMove(state);
                 if (state.isGameOver == true) {
-                    ui.showResult(state); // 显示游戏结果
                     break;
                 }
-
-                // 切换回玩家
-                state.currentPlayer = 1;
             }
         }
 
@@ -63,7 +88,7 @@ int main() {
             int menuChoice = ui.showInGameMenu();
             if (menuChoice == 1) continue; // 继续游戏
             if (menuChoice == 2) { // 保存游戏
-                if (fileIO.saveGame(state)) {
+                if (fileIO.saveGame(game,state)) {
                     outtextxy(200, 350, _T("游戏已保存！"));
                     Sleep(1000); // 提示 1 秒
                 }
@@ -76,9 +101,14 @@ int main() {
                 ui.closeUI();
                 return 0;
             }
+            if (menuChoice == 4) {
+                main();
+                return 0;
+            }
         }
     }
-
+    ui.drawBoard(state, game);//画出最后一粒棋子
+    ui.showResult(state);// 显示游戏结果
     // 游戏结束后的交互
     while (true) {
         int choice = ui.showGameOverMenu();
