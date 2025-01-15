@@ -102,6 +102,9 @@ void Game::makeMove(GameState& state, int x, int y) {
         return; // 落子不合法，直接返回
     }
 
+    // 判断禁手
+    bool is_forbidden = isForbiddenMove(state, x, y);
+
     // 更新棋盘状态
     state.board[x][y] = state.currentPlayer;
 
@@ -121,13 +124,13 @@ void Game::makeMove(GameState& state, int x, int y) {
     // 临时切换当前玩家
     state.currentPlayer = (state.currentPlayer == 1) ? 2 : 1;
 
-    if (state.currentPlayer == 1 && isForbiddenMove(state, x, y)) { // 该位置为禁手
-        std::cout << "目前是" << state.currentPlayer << "落子,是禁手" << std::endl;
+    if (state.currentPlayer == 1 && is_forbidden) { // 该位置为禁手
+        //std::cout << "目前是" << state.currentPlayer << "落子,是禁手" << std::endl;
         state.isGameOver = true; // 游戏结束
         state.winner = 2; // 白方获胜
         return;
     }
-    std::cout << "目前是" << state.currentPlayer << "落子,不是禁手" << std::endl;
+    //std::cout << "目前是" << state.currentPlayer << "落子,不是禁手" << std::endl;
 
     // 重新切换当前玩家
     state.currentPlayer = (state.currentPlayer == 1) ? 2 : 1;
@@ -198,26 +201,40 @@ void Game::makeAIMove(GameState& state) {
 
     int x = validMoves[0].first, y = validMoves[0].second, present_score = 0;
 
-    //if (validMoves.size() == BOARD_SIZE * BOARD_SIZE - 1) {
-    //     //随机选择一个合法的落子位置
-    //    int index = rand() % validMoves.size(); // 随机索引
-    //    x = validMoves[index].first;
-    //    y = validMoves[index].second;
-    //}
-    //else {
-    //    for (auto& point : validMoves) {
-    //        if (evaluate(state, point.first, point.second) >= present_score) {
-    //            x = point.first;
-    //            y = point.second;
-    //            present_score = evaluate(state, point.first, point.second);
-    //        }
-    //    }
-    //}
+    if (validMoves.size() == BOARD_SIZE * BOARD_SIZE - 1) {
+         //随机选择一个合法的落子位置
+        int index = rand() % validMoves.size(); // 随机索引
+        x = validMoves[index].first;
+        y = validMoves[index].second;
+    }
+    else {
+        for (auto& point : validMoves) {
+            if (evaluate(state, point.first, point.second) >= present_score) {
+                if (state.init_choice == 1) {
+                    // 临时切换当前玩家
+                    state.currentPlayer = (state.currentPlayer == 1) ? 2 : 1;
+                    if (isForbiddenMove(state, point.first, point.second)) {
+                        state.currentPlayer = (state.currentPlayer == 1) ? 2 : 1; // 切换回来
+                        continue;
+                    }
+                    state.currentPlayer = (state.currentPlayer == 1) ? 2 : 1; // 切换回来
+                }
+                else {
+                    if (isForbiddenMove(state, point.first, point.second)) {
+                        continue;
+                    }
+                }
+                x = point.first;
+                y = point.second;
+                present_score = evaluate(state, point.first, point.second);
+            }
+        }
+    }
 
-    //随机选择一个合法的落子位置
-    int index = rand() % validMoves.size(); // 随机索引
-    x = validMoves[index].first;
-    y = validMoves[index].second;
+    ////随机选择一个合法的落子位置
+    //int index = rand() % validMoves.size(); // 随机索引
+    //x = validMoves[index].first;
+    //y = validMoves[index].second;
 
     // 执行落子
     makeMove(state, x, y);
@@ -228,318 +245,376 @@ void Game::setStone(GameState& state, int x, int y, int cStone) {
     return;
 }
 
-bool Game::isFive(const GameState& state, int x, int y) {
-    int player = state.currentPlayer; // 当前玩家
+bool Game::isFive(GameState& state, int x, int y) {
+    int nColor = state.currentPlayer; // 当前玩家
 
-    // 方向数组：水平、垂直、两个对角线
+    // 如果该位置已有棋子，则直接返回false
+    if (state.board[x][y] != 0)
+        return false;
+
+    // 用于存储需要检查的方向
     int dx[] = { 1, 0, 1, 1 };
     int dy[] = { 0, 1, 1, -1 };
 
+    // 临时放置棋子进行检查
+    setStone(state, x, y, nColor);
+
+    // 检查四个方向上的五子连珠
     for (int dir = 0; dir < 4; dir++) {
-        int count = 1; // 当前方向的连续棋子数
-        // 向正方向检查
-        int nx = x + dx[dir], ny = y + dy[dir];
-        while (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && state.board[nx][ny] == player) {
-            count++;
-            nx += dx[dir];
-            ny += dy[dir];
-        }
-        // 向反方向检查
-        nx = x - dx[dir], ny = y - dy[dir];
-        while (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && state.board[nx][ny] == player) {
-            count++;
-            nx -= dx[dir];
-            ny -= dy[dir];
-        }
-        // 判断是否形成五连
-        if (player == 1) { // 黑子必须恰好五子
-            if (count == 5) {
-                return true;
-            }
-        }
-        else if (player == 2) { // 白子可以五子或更多
-            if (count >= 5) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
+        int nLine = 1;
 
-bool Game::isOverline(const GameState& state, int x, int y) {
-    int player = state.currentPlayer; // 当前玩家
-
-    if (player != 1) return false; // 只有黑子需要检查长连
-
-    // 方向数组：水平、垂直、两个对角线
-    int dx[] = { 1, 0, 1, 1 };
-    int dy[] = { 0, 1, 1, -1 };
-
-    for (int dir = 0; dir < 4; dir++) {
-        int count = 1; // 当前方向的连续棋子数
-        // 向正方向检查
-        int nx = x + dx[dir], ny = y + dy[dir];
-        while (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && state.board[nx][ny] == player) {
-            count++;
-            nx += dx[dir];
-            ny += dy[dir];
+        // 向一个方向扩展
+        int i = x + dx[dir], j = y + dy[dir];
+        while (isInBoard(i, j) && state.board[i][j] == nColor) {
+            nLine++;
+            i += dx[dir];
+            j += dy[dir];
         }
-        // 向反方向检查
-        nx = x - dx[dir], ny = y - dy[dir];
-        while (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && state.board[nx][ny] == player) {
-            count++;
-            nx -= dx[dir];
-            ny -= dy[dir];
+
+        // 向相反方向扩展
+        i = x - dx[dir];
+        j = y - dy[dir];
+        while (isInBoard(i, j) && state.board[i][j] == nColor) {
+            nLine++;
+            i -= dx[dir];
+            j -= dy[dir];
         }
-        // 判断是否形成长连（超过五子）
-        if (count > 5) {
+
+        // 黑子需要正好五子连珠，白子需要至少五子连珠
+        if ((nColor == 1 && nLine == 5) || (nColor == 2 && nLine >= 5)) {
+            state.board[x][y] = 0; // 恢复为空位
             return true;
         }
     }
+
+    setStone(state, x, y, 0); // 恢复为空位
     return false;
 }
 
-bool Game::isFour(const GameState& state, int x, int y, int nDir) {
-    int player = state.currentPlayer; // 当前玩家
+bool Game::isFive(GameState& state, int x, int y, int nDir) {
+    int nColor = state.currentPlayer; // 当前玩家
 
-    // 方向数组：水平、垂直、两个对角线
+    // 如果该位置已有棋子，则直接返回false
+    if (state.board[x][y] != 0)
+        return false;
+
+    // 用于存储需要检查的方向
     int dx[] = { 1, 0, 1, 1 };
     int dy[] = { 0, 1, 1, -1 };
 
-    // 检查是否形成五连
-    if (isFive(state, x, y)) {
-        return false;
+    // 临时放置棋子进行检查
+    setStone(state, x, y, nColor);
+
+    // 检查nDir方向上的五子连珠
+    int nLine = 1, dir = nDir;
+
+    // 向一个方向扩展
+    int i = x + dx[dir], j = y + dy[dir];
+    while (isInBoard(i, j) && state.board[i][j] == nColor) {
+        nLine++;
+        i += dx[dir];
+        j += dy[dir];
     }
 
-    // 检查黑方的长连禁手
-    if (player == 1 && isOverline(state, x, y)) {
-        return false;
+    // 向相反方向扩展
+    i = x - dx[dir];
+    j = y - dy[dir];
+    while (isInBoard(i, j) && state.board[i][j] == nColor) {
+        nLine++;
+        i -= dx[dir];
+        j -= dy[dir];
     }
 
-    // 模拟放置棋子
-    int count = 1; // 当前方向的连续棋子数
-
-    // 向正方向检查
-    int nx = x + dx[nDir - 1], ny = y + dy[nDir - 1];
-    while (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && state.board[nx][ny] == player) {
-        count++;
-        nx += dx[nDir - 1];
-        ny += dy[nDir - 1];
-    }
-
-    // 向反方向检查
-    nx = x - dx[nDir - 1], ny = y - dy[nDir - 1];
-    while (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && state.board[nx][ny] == player) {
-        count++;
-        nx -= dx[nDir - 1];
-        ny -= dy[nDir - 1];
-    }
-
-    // 判断是否形成四连
-    if (count == 4) {
+    // 黑子需要正好五子连珠，白子需要至少五子连珠
+    if ((nColor == 1 && nLine == 5) || (nColor == 2 && nLine >= 5)) {
+        state.board[x][y] = 0; // 恢复为空位
         return true;
     }
 
+    setStone(state, x, y, 0); // 恢复为空位
     return false;
 }
 
-int Game::isOpenFour(const GameState& state, int x, int y, int nDir) {
-    int player = state.currentPlayer; // 当前玩家
+bool Game::isOverline(GameState& state, int x, int y) {
+    // 如果该位置已有棋子，则直接返回false
+    if (state.board[x][y] != 0)
+        return false;
 
-    // 检查是否已经形成了五子连线
-    if (isFive(state, x, y)) {
-        return 0; // 已经形成五子连线，不是活四
-    }
-
-    // 检查黑棋是否有长连禁手
-    if (player == 1 && isOverline(state, x, y)) {
-        return 0; // 黑棋有长连禁手，不是活四
-    }
-
-    // 方向数组：水平、垂直、两个对角线
+    // 用于存储需要检查的方向
     int dx[] = { 1, 0, 1, 1 };
     int dy[] = { 0, 1, 1, -1 };
 
-    // 检查四个方向
-    for (int dir = 0; dir < 4; ++dir) {
-        int count = 1; // 当前方向的连续棋子数
-        int openEnds = 0; // 开放端的数量
+    // 临时放置黑子进行检查
+    setStone(state, x, y, 1); // 黑子
 
-        // 向正方向检查
-        int nx = x + dx[dir], ny = y + dy[dir];
-        while (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && state.board[nx][ny] == player) {
-            count++;
-            nx += dx[dir];
-            ny += dy[dir];
-        }
-        // 检查正方向是否开放
-        if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && state.board[nx][ny] == 0) {
-            openEnds++;
-        }
+    bool bOverline = false;
 
-        // 向反方向检查
-        nx = x - dx[dir], ny = y - dy[dir];
-        while (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && state.board[nx][ny] == player) {
-            count++;
-            nx -= dx[dir];
-            ny -= dy[dir];
-        }
-        // 检查反方向是否开放
-        if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && state.board[nx][ny] == 0) {
-            openEnds++;
+    // 检查四个方向上的长连
+    for (int dir = 0; dir < 4; dir++) {
+        int nLine = 1;
+
+        // 向一个方向扩展
+        int i = x + dx[dir], j = y + dy[dir];
+        while (isInBoard(i, j) && state.board[i][j] == 1) {
+            nLine++;
+            i += dx[dir];
+            j += dy[dir];
         }
 
-        // 判断是否形成活四
-        if (count == 4 && openEnds >= 1) {
-            return 1; // 形成活四
+        // 向相反方向扩展
+        i = x - dx[dir];
+        j = y - dy[dir];
+        while (isInBoard(i, j) && state.board[i][j] == 1) {
+            nLine++;
+            i -= dx[dir];
+            j -= dy[dir];
+        }
+
+        // 如果形成五子连珠，则撤销放置并返回false（因为不是长连）
+        if (nLine == 5) {
+            setStone(state, x, y, 0); // 恢复为空位
+            return false;
+        }
+
+        // 如果形成长连，则设置bOverline为true
+        if (nLine >= 6) {
+            bOverline = true;
         }
     }
 
-    return 0; // 没有形成活四
+    setStone(state, x, y, 0); // 恢复为空位
+    return bOverline;
 }
 
-bool Game::isOpenThree(const GameState& state, int x, int y, int nDir) {
-    int player = state.currentPlayer; // 当前玩家
+bool Game::isFour(GameState& state, int x, int y, int nDir) {
+    // 如果该位置已有棋子，则直接返回false
+    if (state.board[x][y] != 0)
+        return false;
 
-    // 检查是否已经形成了五子连线
-    if (isFive(state, x, y)) {
-        return false; // 已经形成五子连线，不是活三
-    }
+    // 如果放置棋子后会形成五子连珠，返回false
+    if (isFive(state, x, y, 1))
+        return false;
+    // 如果当前玩家是黑方且放置棋子后会形成黑方的长连，返回false
+    else if ((state.currentPlayer == 1) && (isOverline(state, x, y)))
+        return false;
+    else {
+        int c = state.currentPlayer; // 获取当前玩家
 
-    // 检查黑棋是否有长连禁手
-    if (player == 1 && isOverline(state, x, y)) {
-        return false; // 黑棋有长连禁手，不是活三
-    }
+        // 临时在(x, y)位置放置棋子
+        setStone(state, x, y, c);
 
-    // 方向数组：水平、垂直、两个对角线
-    int dx[] = { 1, 0, 1, 1 };
-    int dy[] = { 0, 1, 1, -1 };
+        // 用于存储需要检查的方向
+        int dx[] = { 1, 0, 1, 1 };
+        int dy[] = { 0, 1, 1, -1 };
 
-    // 检查四个方向
-    for (int dir = 0; dir < 4; ++dir) {
-        int count = 1; // 当前方向的连续棋子数
-        int openEnds = 0; // 开放端的数量
+        // 根据nDir的值判断检查的方向
+        int dir = nDir ; 
+        int nLine = 1;
 
-        // 向正方向检查
-        int nx = x + dx[dir], ny = y + dy[dir];
-        while (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && state.board[nx][ny] == player) {
-            count++;
-            nx += dx[dir];
-            ny += dy[dir];
+        // 向一个方向扩展
+        int i = x + dx[dir], j = y + dy[dir];
+        while (isInBoard(i, j) && state.board[i][j] == c) {
+            nLine++;
+            i += dx[dir];
+            j += dy[dir];
         }
 
-        // 检查正方向是否开放
-        if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && state.board[nx][ny] == 0) {
-            // 检查空位是否为禁手
-            if (!isForbiddenMove(state, nx, ny)) {
-                // 检查是否满足开放四连且没有双四和双三阻挡
-                if ((isOpenFour(state, nx, ny, dir) == 1) &&
-                    (!isDoubleFour(state, nx, ny)) &&
-                    (!isDoubleThree(state, nx, ny))) {
-                    openEnds++; // 空位有效，开放端计数增加
-                }
+        // 向相反方向扩展
+        i = x - dx[dir];
+        j = y - dy[dir];
+        while (isInBoard(i, j) && state.board[i][j] == c) {
+            nLine++;
+            i -= dx[dir];
+            j -= dy[dir];
+        }
+
+        // 如果形成四子连珠，则撤销放置并返回true
+        if (nLine == 4) {
+            setStone(state, x, y, 0); // 恢复为空位
+            return true;
+        }
+
+        setStone(state, x, y, 0); // 恢复为空位
+        return false;
+    }
+}
+
+int Game::isOpenFour(GameState& state, int x, int y, int nDir) {
+    int nColor = state.currentPlayer; // 获取当前玩家
+
+    // 如果该位置已有棋子，则直接返回0
+    if (state.board[x][y] != 0)
+        return 0;
+
+    // 如果放置棋子后会形成五子连珠，返回0
+    if (isFive(state, x, y, nColor))
+        return 0;
+
+    // 如果当前玩家是黑方且放置棋子后会形成黑方的长连，返回0
+    else if ((nColor == 1) && (isOverline(state, x, y)))
+        return 0;
+    else {
+        // 临时在(x, y)位置放置棋子
+        setStone(state, x, y, nColor);
+
+        // 用于存储需要检查的方向
+        int dx[] = { 1, 0, 1, 1 };
+        int dy[] = { 0, 1, 1, -1 };
+
+        // 根据nDir的值判断检查的方向
+        int dir = nDir;
+        int nLine = 1;
+
+        // 向一个方向扩展
+        int i = x + dx[dir], j = y + dy[dir];
+        while (isInBoard(i, j) && state.board[i][j] == nColor) {
+            nLine++;
+            i += dx[dir];
+            j += dy[dir];
+        }
+        if (isInBoard(i, j) && state.board[i][j] == 0) {
+            // 如果不能成五，则不是活四
+            if (!isFive(state, i , j , dir)) {
+                setStone(state, x, y, 0);
+                return 0;
+            }
+        }
+        else {
+            setStone(state, x, y, 0);
+            return 0;
+        }
+
+        // 向相反方向扩展
+        i = x - dx[dir];
+        j = y - dy[dir];
+        while (isInBoard(i, j) && state.board[i][j] == nColor) {
+            nLine++;
+            i -= dx[dir];
+            j -= dy[dir];
+        }
+        if (isInBoard(i, j) && state.board[i][j] == 0) {
+            // 如果形成连续的五个空位且当前链长为4，则为活四，返回1；否则返回2
+            if (isFive(state, i , j , dir)) {
+                setStone(state, x, y, 0);
+                return (nLine == 4 ? 1 : 2);
             }
         }
 
-        // 向反方向检查
-        nx = x - dx[dir], ny = y - dy[dir];
-        while (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && state.board[nx][ny] == player) {
-            count++;
-            nx -= dx[dir];
-            ny -= dy[dir];
+        setStone(state, x, y, 0); // 恢复为空位
+        return 0;
+    }
+}
+
+bool Game::isOpenThree(GameState& state, int x, int y, int nDir) {
+    int nColor = state.currentPlayer; // 获取当前玩家
+
+    // 如果该位置已有棋子，则直接返回false
+    if (state.board[x][y] != 0)
+        return false;
+
+    // 如果放置棋子后会形成五子连珠，返回false
+    if (isFive(state, x, y, nColor))
+        return false;
+
+    // 如果当前玩家是黑方且放置棋子后会形成黑方的长连，返回false
+    else if ((nColor == 1) && (isOverline(state, x, y)))
+        return false;
+    else {
+        // 临时在(x, y)位置放置棋子
+        setStone(state, x, y, nColor);
+
+        // 用于存储需要检查的方向
+        int dx[] = {1, 0, 1, 1};
+        int dy[] = {0, 1, 1, -1};
+
+        // 根据nDir的值判断检查的方向
+        int dir = nDir; 
+
+        // 向一个方向扩展
+        int i = x + dx[dir], j = y + dy[dir];
+        while (isInBoard(i, j) && state.board[i][j] == nColor) {
+            i += dx[dir];
+            j += dy[dir];
         }
-        // 检查反方向是否开放
-        if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && state.board[nx][ny] == 0) {
-            // 检查空位是否为禁手
-            if (!isForbiddenMove(state, nx, ny)) {
-                // 检查是否满足开放四连且没有双四和双三阻挡
-                if ((isOpenFour(state, nx, ny, dir) == 1) &&
-                    (!isDoubleFour(state, nx, ny)) &&
-                    (!isDoubleThree(state, nx, ny))) {
-                    openEnds++; // 空位有效，开放端计数增加
-                }
+        if (isInBoard(i, j) && state.board[i][j] == 0) {
+            if ((isOpenFour(state, i , j, nDir) == 1) && 
+                (!isDoubleFour(state, i, j)) &&
+                (!isDoubleThree(state, i, j))) {
+                setStone(state, x, y, 0);
+                return true;
             }
         }
 
-        // 判断是否形成活三
-        if (count == 3 && openEnds >= 1) {
-            // 检查是否形成双四或双三
-            if (!isDoubleFour(state, x, y) && !isDoubleThree(state, x, y)) {
-                return true; // 形成活三
+        // 向相反方向扩展
+        i = x - dx[dir];
+        j = y - dy[dir];
+        while (isInBoard(i, j) && state.board[i][j] == nColor) {
+            i -= dx[dir];
+            j -= dy[dir];
+        }
+        if (isInBoard(i, j) && state.board[i][j] == 0) {
+            if ((isOpenFour(state, i, j, nDir) == 1) &&
+                (!isDoubleFour(state, i, j)) &&
+                (!isDoubleThree(state, i, j))) {
+                setStone(state, x, y, 0);
+                return true;
             }
         }
-    }
 
-    return false; // 没有形成活三
+        setStone(state, x, y, 0); // 恢复为空位
+        return false;
+    }
 }
 
-bool Game::isDoubleThree(const GameState& state, int x, int y) {
-    int player = state.currentPlayer; // 当前玩家
+bool Game::isDoubleThree(GameState& state, int x, int y) {
+    int nColor = state.currentPlayer; // 获取当前玩家
 
-    // 检查是否已经形成了五子连线
-    if (isFive(state, x, y)) {
-        return false; // 已经形成五子连线，不是双三
+    // 如果该位置已有棋子，则直接返回false
+    if (state.board[x][y] != 0)
+        return false;
+
+    // 如果放置棋子后会形成五子连珠，返回false
+    if (isFive(state, x, y))
+        return false;
+
+    int nThree = 0;
+    for (int i = 0; i < 4; i++) {
+        if (isOpenThree(state, x, y, i))
+            nThree++;
     }
 
-    //// 检查黑棋是否有长连禁手
-    //if (player == 1 && isOverline(state, x, y)) {
-    //    return false; // 黑棋有长连禁手，不是双三
-    //}
-
-    int threeCount = 0; // 记录活三的数量
-
-    // 方向数组：水平、垂直、两个对角线
-    int dx[] = { 1, 0, 1, 1 };
-    int dy[] = { 0, 1, 1, -1 };
-
-    // 检查四个方向
-    for (int dir = 0; dir < 4; ++dir) {
-        // 检查当前方向是否形成活三
-        if (isOpenThree(state, x, y, dir)) {
-            threeCount++;
-        }
-    }
-
-    // 如果活三的数量大于等于2，则返回true，表示形成双三
-    return threeCount >= 2;
+    if (nThree >= 2)
+        return true;
+    else
+        return false;
 }
 
-bool Game::isDoubleFour(const GameState& state, int x, int y) {
-    int player = state.currentPlayer; // 当前玩家
+bool Game::isDoubleFour(GameState& state, int x, int y) {
+    int nColor = state.currentPlayer; // 获取当前玩家
 
-    // 检查是否已经形成了五子连线
-    if (isFive(state, x, y)) {
-        return false; // 已经形成五子连线，不是双四
+    // 如果该位置已有棋子，则直接返回false
+    if (state.board[x][y] != 0)
+        return false;
+
+    // 如果放置棋子后会形成五子连珠，返回false
+    if (isFive(state, x, y, nColor))
+        return false;
+
+    int nFour = 0;
+    for (int i = 0; i < 4; i++) {
+        if (isOpenFour(state, x, y, i) == 2)
+            nFour += 2;
+        else if (isFour(state, x, y, i))
+            nFour++;
     }
 
-    //// 检查黑棋是否有长连禁手
-    //if (player == 1 && isOverline(state, x, y)) {
-    //    return false; // 黑棋有长连禁手，不是双四
-    //}
-
-    int fourCount = 0; // 记录四连的数量
-
-    // 方向数组：水平、垂直、两个对角线
-    int dx[] = { 1, 0, 1, 1 };
-    int dy[] = { 0, 1, 1, -1 };
-
-    // 检查四个方向
-    for (int dir = 0; dir < 4; ++dir) {
-        // 检查当前方向是否形成活四
-        if (isOpenFour(state, x, y, dir) == 1) {
-            fourCount += 2; // 活四算作两个四连
-        }
-        // 检查当前方向是否形成普通四连
-        else if (isFour(state, x, y, dir)) {
-            fourCount++;
-        }
-    }
-
-    // 如果四连的数量大于等于2，则返回true，表示形成双四
-    return fourCount >= 2;
+    if (nFour >= 2)
+        return true;
+    else
+        return false;
 }
 
-bool Game::isForbiddenMove(const GameState& state, int x, int y) {
+bool Game::isForbiddenMove(GameState& state, int x, int y) {
     // 仅对黑方进行禁手检查
     if (state.currentPlayer != 1) {
         return false; 

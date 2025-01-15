@@ -1,7 +1,7 @@
 #include "UI.h"
 #include "game.h"
 #include "FileIO.h"
-//#pragma comment(linker, "/subsystem:windows /entry:mainCRTStartup")
+#pragma comment(linker, "/subsystem:windows /entry:mainCRTStartup")
 int main() {
     GameState state;
     Game game;

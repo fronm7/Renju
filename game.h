@@ -6,10 +6,12 @@
 #include <stdexcept>
 // 棋盘大小
 const int BOARD_SIZE = 15;
+// 伪无穷
+const int Inf = 2147483647;
 // 游戏状态类
 class GameState {
 public:
-    std::vector<std::vector<int>> board; // 棋盘状态（0: 空, 1: 黑子, 2: 白子, 3: 禁手）
+    std::vector<std::vector<int>> board; // 棋盘状态（0: 空, 1: 黑子, 2: 白子, 3: 禁手（这个设定被放弃了））
     int currentPlayer; // 当前玩家（1: 黑方, 2: 白方）
     bool isGameOver; // 游戏是否结束
     int winner; // 胜利者（0: 未结束, 1: 黑方胜利, 2: 白方胜利）
@@ -80,28 +82,31 @@ public:
     void setStone(GameState& state, int x, int y, int cStone);
 
     // 判断是否禁手（仅对黑方）
-    bool isForbiddenMove(const GameState& state, int x, int y);
+    bool isForbiddenMove(GameState& state, int x, int y);
 
     // 判断是否形成了五子连线
-    bool isFive(const GameState& state, int x, int y);
+    bool isFive(GameState& state, int x, int y);
+
+    // 在指定方向判断是否形成了五子连线
+    bool isFive(GameState& state, int x, int y, int nDir);
 
     // 判断是否形成了长连（超过五子）
-    bool isOverline(const GameState& state, int x, int y);
+    bool isOverline(GameState& state, int x, int y);
 
     // 在指定方向判断是否形成了四子连线
-    bool isFour(const GameState& state, int x, int y, int nDir);
+    bool isFour(GameState& state, int x, int y, int nDir);
 
     // 在指定方向判断是否有活四（四子连线且两端为空位）
-    int isOpenFour(const GameState& state, int x, int y, int nDir);
+    int isOpenFour(GameState& state, int x, int y, int nDir);
 
     // 在指定方向判断是否有活三（三子连线且两端至少有一个空位）
-    bool isOpenThree(const GameState& state, int x, int y, int nDir);
+    bool isOpenThree(GameState& state, int x, int y, int nDir);
 
     // 判断是否形成了双四（两个四子连线共享一个端点）
-    bool isDoubleFour(const GameState& state, int x, int y);
+    bool isDoubleFour(GameState& state, int x, int y);
 
     // 判断是否形成了双三（两个三子连线共享一个端点）
-    bool isDoubleThree(const GameState& state, int x, int y);
+    bool isDoubleThree(GameState& state, int x, int y);
 
     // 执行落子
     void makeMove(GameState& state, int x, int y);
