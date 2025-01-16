@@ -49,6 +49,7 @@ int main() {
         // AI先手天元
         if (state.init_choice == 2 && game.turnnumber() == 0) {
             game.makeMove(state, BOARD_SIZE / 2, BOARD_SIZE / 2);
+            ui.drawBoard(state, game); //绘制棋盘、悔棋按钮,显示回合数
         }
 
         if (MouseHit()) {
@@ -76,6 +77,8 @@ int main() {
 
             // AI 落子
             if (state.currentPlayer != state.init_choice) {
+                ui.drawBoard(state, game); //绘制棋盘、悔棋按钮,显示回合数
+                //Sleep(1000); // 用于调试高亮功能
                 game.makeAIMove(state);
                 if (state.isGameOver == true) {
                     break;

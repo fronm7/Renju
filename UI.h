@@ -251,7 +251,12 @@ public:
                 }
             }
         }
+
+        // 标记最近一次落子
+        highlightLastMove(state);
+        // 绘制悔棋按钮
         drawUndoButton();
+        // 显示回合数
         drawUI(game);
         // 结束双缓冲，刷新屏幕
         EndBatchDraw();
@@ -332,6 +337,28 @@ public:
         TCHAR turnText[50];
         swprintf_s(turnText, _T("回合数: %d"), game.turnnumber());
         outtextxy(UNDO_BUTTON_X, UNDO_BUTTON_Y+50, turnText);
+    }
+
+    void highlightLastMove(const GameState& state) {
+        // 如果没有落子记录，直接返回
+        if (state.lastMoveX == -1 || state.lastMoveY == -1) return;
+
+        // 计算棋子在屏幕上的坐标
+        int centerX = BOARD_START_X + state.lastMoveY * CELL_SIZE;
+        int centerY = BOARD_START_Y + state.lastMoveX * CELL_SIZE;
+
+        // 根据落子方选择颜色
+        if (state.board[state.lastMoveX][state.lastMoveY] == state.init_choice) {
+            setlinecolor(LIGHTBLUE); // 使用更亮的蓝色
+        }
+        else {
+            setlinecolor(RED); // 对方（白棋）标红
+        }
+        setlinestyle(PS_SOLID, 2); // 设置线宽为 2 像素
+        // 绘制一个圆圈标记
+        circle(centerX, centerY, CELL_SIZE / 2 - 2); // 与棋子大小一致
+        setlinestyle(PS_SOLID, 1); // 设置线宽为 1 像素
+        return;
     }
 
 private:

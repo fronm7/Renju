@@ -15,6 +15,10 @@ void Game::initGame(GameState& state) {
 
         //游戏未结束
         state.winner = 0;
+
+        //落子位置回退为非法
+        state.lastMoveX = -1;
+        state.lastMoveY = -1;
     }
     else {
         state = getCurrentState();
@@ -108,6 +112,10 @@ void Game::makeMove(GameState& state, int x, int y) {
     // 更新棋盘状态
     state.board[x][y] = state.currentPlayer;
 
+    // 更新最近一次落子的位置
+    state.lastMoveX = x;
+    state.lastMoveY = y;
+
     // 切换当前玩家
     state.currentPlayer = (state.currentPlayer == 1) ? 2 : 1;
 
@@ -121,19 +129,13 @@ void Game::makeMove(GameState& state, int x, int y) {
         return;
     }
 
-    // 临时切换当前玩家
-    state.currentPlayer = (state.currentPlayer == 1) ? 2 : 1;
-
-    if (state.currentPlayer == 1 && is_forbidden) { // 该位置为禁手
+    if (is_forbidden) { // 该位置为禁手
         //std::cout << "目前是" << state.currentPlayer << "落子,是禁手" << std::endl;
         state.isGameOver = true; // 游戏结束
         state.winner = 2; // 白方获胜
         return;
     }
     //std::cout << "目前是" << state.currentPlayer << "落子,不是禁手" << std::endl;
-
-    // 重新切换当前玩家
-    state.currentPlayer = (state.currentPlayer == 1) ? 2 : 1;
 
     return;
 }
@@ -235,7 +237,6 @@ void Game::makeAIMove(GameState& state) {
     //int index = rand() % validMoves.size(); // 随机索引
     //x = validMoves[index].first;
     //y = validMoves[index].second;
-
     // 执行落子
     makeMove(state, x, y);
 }
@@ -252,7 +253,7 @@ bool Game::isFive(GameState& state, int x, int y) {
     if (state.board[x][y] != 0)
         return false;
 
-    // 用于存储需要检查的方向
+    // 方向数组
     int dx[] = { 1, 0, 1, 1 };
     int dy[] = { 0, 1, 1, -1 };
 
@@ -298,7 +299,7 @@ bool Game::isFive(GameState& state, int x, int y, int nDir) {
     if (state.board[x][y] != 0)
         return false;
 
-    // 用于存储需要检查的方向
+    // 方向数组
     int dx[] = { 1, 0, 1, 1 };
     int dy[] = { 0, 1, 1, -1 };
 
@@ -340,7 +341,7 @@ bool Game::isOverline(GameState& state, int x, int y) {
     if (state.board[x][y] != 0)
         return false;
 
-    // 用于存储需要检查的方向
+    // 方向数组
     int dx[] = { 1, 0, 1, 1 };
     int dy[] = { 0, 1, 1, -1 };
 
@@ -403,7 +404,7 @@ bool Game::isFour(GameState& state, int x, int y, int nDir) {
         // 临时在(x, y)位置放置棋子
         setStone(state, x, y, c);
 
-        // 用于存储需要检查的方向
+        // 方向数组
         int dx[] = { 1, 0, 1, 1 };
         int dy[] = { 0, 1, 1, -1 };
 
@@ -457,7 +458,7 @@ int Game::isOpenFour(GameState& state, int x, int y, int nDir) {
         // 临时在(x, y)位置放置棋子
         setStone(state, x, y, nColor);
 
-        // 用于存储需要检查的方向
+        // 方向数组
         int dx[] = { 1, 0, 1, 1 };
         int dy[] = { 0, 1, 1, -1 };
 
@@ -493,7 +494,7 @@ int Game::isOpenFour(GameState& state, int x, int y, int nDir) {
             j -= dy[dir];
         }
         if (isInBoard(i, j) && state.board[i][j] == 0) {
-            // 如果形成连续的五个空位且当前链长为4，则为活四，返回1；否则返回2
+            // 如果可以成五且当前链长为4，则为活四，返回1；否则返回2
             if (isFive(state, i , j , dir)) {
                 setStone(state, x, y, 0);
                 return (nLine == 4 ? 1 : 2);
@@ -523,7 +524,7 @@ bool Game::isOpenThree(GameState& state, int x, int y, int nDir) {
         // 临时在(x, y)位置放置棋子
         setStone(state, x, y, nColor);
 
-        // 用于存储需要检查的方向
+        // 方向数组
         int dx[] = {1, 0, 1, 1};
         int dy[] = {0, 1, 1, -1};
 
@@ -573,7 +574,7 @@ bool Game::isDoubleThree(GameState& state, int x, int y) {
     if (state.board[x][y] != 0)
         return false;
 
-    // 如果放置棋子后会形成五子连珠，返回false
+    // 如果放置棋子后会成五，返回false
     if (isFive(state, x, y))
         return false;
 

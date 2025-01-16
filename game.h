@@ -16,9 +16,12 @@ public:
     bool isGameOver; // 游戏是否结束
     int winner; // 胜利者（0: 未结束, 1: 黑方胜利, 2: 白方胜利）
     int init_choice; //玩家初始选择
+    // 最近一次落子的位置
+    int lastMoveX; // 初始值为 -1，表示没有落子
+    int lastMoveY;
 
     // 默认构造函数
-    GameState() : currentPlayer(1), isGameOver(false), winner(0), init_choice(1){
+    GameState() : currentPlayer(1), isGameOver(false), winner(0), init_choice(1), lastMoveX(-1), lastMoveY(-1){
         board.resize(BOARD_SIZE, std::vector<int>(BOARD_SIZE, 0)); // 初始化 15x15 的棋盘
     }
 
@@ -28,7 +31,9 @@ public:
         currentPlayer(other.currentPlayer),
         isGameOver(other.isGameOver),
         winner(other.winner),
-        init_choice(other.init_choice){
+        init_choice(other.init_choice),
+        lastMoveX(other.lastMoveX),
+        lastMoveY(other.lastMoveY){
     }
 };
 
