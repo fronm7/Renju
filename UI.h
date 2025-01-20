@@ -4,6 +4,9 @@
 #include "game.h" // 包含游戏状态的定义
 #include "FileIO.h" // 包含文件操作功能
 #include <graphics.h> // EASYX 图形库
+//// 刷新率
+//extern int Freq;
+//extern int T0;
 const int BOARD_START_X = 25; // 棋盘左上角 X 坐标
 const int BOARD_START_Y = 25; // 棋盘左上角 Y 坐标
 const int CELL_SIZE = 38;     // 每个格子的大小（像素）
@@ -87,6 +90,9 @@ public:
     //}
     // 显示主界面
     int showMainMenu() {
+        // 启用双缓冲
+        BeginBatchDraw();
+
         cleardevice(); // 清空屏幕
 
         // 绘制主菜单选项
@@ -96,8 +102,12 @@ public:
         outtextxy(300, 250, _T("2. 加载存档"));
         outtextxy(300, 300, _T("3. 退出游戏"));
 
+        //结束双缓冲
+        EndBatchDraw();
+
         // 处理鼠标点击
         while (true) {
+            Sleep(5);
             if (MouseHit()) {
                 MOUSEMSG msg = GetMouseMsg();
                 if (msg.uMsg == WM_LBUTTONDOWN) {
@@ -125,6 +135,7 @@ public:
 
         // 处理鼠标点击
         while (true) {
+            Sleep(5);
             if (MouseHit()) {
                 MOUSEMSG msg = GetMouseMsg();
                 if (msg.uMsg == WM_LBUTTONDOWN) {
@@ -150,6 +161,7 @@ public:
 
         // 处理鼠标点击
         while (true) {
+            Sleep(5);
             if (MouseHit()) {
                 MOUSEMSG msg = GetMouseMsg();
                 if (msg.uMsg == WM_LBUTTONDOWN) {
@@ -175,6 +187,7 @@ public:
 
         // 处理鼠标点击
         while (true) {
+            Sleep(5);
             if (MouseHit()) {
                 MOUSEMSG msg = GetMouseMsg();
                 if (msg.uMsg == WM_LBUTTONDOWN) {
@@ -205,6 +218,7 @@ public:
         //while (!MouseHit()); // 等待用户点击
         //Sleep(1000);  //显示获胜方界面1秒。调试语句，使用此语句可以让获胜文字停留在界面上。
         while (true) {
+            Sleep(5);
             //outtextxy(600, 500, rand());
             if (MouseHit()) {
                 MOUSEMSG msg = GetMouseMsg();

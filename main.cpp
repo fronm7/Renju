@@ -2,6 +2,8 @@
 #include "game.h"
 #include "FileIO.h"
 #pragma comment(linker, "/subsystem:windows /entry:mainCRTStartup")
+//int Freq = 200;
+//int T0 = 1000 / Freq;
 int main() {
     GameState state;
     Game game;
@@ -12,6 +14,7 @@ int main() {
 
     // 主界面
     while (true) {
+        Sleep(5);
         int choice = ui.showMainMenu();
         if (choice == 1) { // 开始新游戏
             game.initGame(state);
@@ -44,6 +47,8 @@ int main() {
     // 游戏主循环
     int lastX = -1, lastY = -1; // 记录最后一次落子的位置
     while (!state.isGameOver) {
+        Sleep(5);
+
         ui.drawBoard(state, game); //绘制棋盘、悔棋按钮,显示回合数
         
         // AI先手天元
@@ -114,6 +119,7 @@ int main() {
     ui.showResult(state);// 显示游戏结果
     // 游戏结束后的交互
     while (true) {
+        Sleep(5);
         int choice = ui.showGameOverMenu();
         if (choice == 1) { // 回到主界面
             main(); // 重新启动主程序

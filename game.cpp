@@ -166,16 +166,25 @@ int Game::evaluate(GameState& state, int x, int y) {
                 blackCount -= whiteCount;
             }
             // 依据敌我子数评分
-            if (blackCount == 0 && whiteCount == 0)		totalScore += 10;
-            else if (blackCount == 1 && whiteCount == 0)	totalScore += 35;
-            else if (blackCount == 2 && whiteCount == 0)	totalScore += 1500;
-            else if (blackCount == 3 && whiteCount == 0)	totalScore += 18000;
-            else if (blackCount == 4 && whiteCount == 0)	totalScore += 1000000;
-            else if (blackCount && whiteCount == 1)	totalScore += 15;
-            else if (blackCount == 0 && whiteCount == 2)	totalScore += 400;
-            else if (blackCount == 0 && whiteCount == 3)	totalScore += 6000;
-            else if (blackCount == 0 && whiteCount == 4)	totalScore += 150000;
-            else if (blackCount != 0 && whiteCount != 0)	totalScore += 0;
+            //if (blackCount == 0 && whiteCount == 0)		totalScore += 10;
+            //else if (blackCount == 1 && whiteCount == 0)	totalScore += 35;
+            //else if (blackCount == 2 && whiteCount == 0)	totalScore += 1500;
+            //else if (blackCount == 3 && whiteCount == 0)	totalScore += 18000;
+            //else if (blackCount == 4 && whiteCount == 0)	totalScore += 1000000;
+            //else if (blackCount && whiteCount == 1)	totalScore += 15;
+            //else if (blackCount == 0 && whiteCount == 2)	totalScore += 400;
+            //else if (blackCount == 0 && whiteCount == 3)	totalScore += 6000;
+            //else if (blackCount == 0 && whiteCount == 4)	totalScore += 150000;
+            //else if (blackCount != 0 && whiteCount != 0)	totalScore += 0;
+            if (blackCount == 0 && whiteCount == 0) totalScore += 7;
+            if (blackCount == 1 && whiteCount == 0) totalScore += 35;
+            if (blackCount == 2 && whiteCount == 0) totalScore += 800;
+            if (blackCount == 3 && whiteCount == 0) totalScore += 15000;
+            if (blackCount == 4 && whiteCount == 0) totalScore += 800000;
+            if (blackCount == 0 && whiteCount == 1) totalScore += 15;
+            if (blackCount == 0 && whiteCount == 2) totalScore += 400;
+            if (blackCount == 0 && whiteCount == 3) totalScore += 1800;
+            if (blackCount == 0 && whiteCount == 4) totalScore += 100000;
         }
     }
     return totalScore;
@@ -203,7 +212,7 @@ void Game::makeAIMove(GameState& state) {
 
     int x = validMoves[0].first, y = validMoves[0].second, present_score = 0;
 
-    if (validMoves.size() == BOARD_SIZE * BOARD_SIZE - 1) {
+    if (/*validMoves.size() == BOARD_SIZE * BOARD_SIZE - 1*/false) {
          //随机选择一个合法的落子位置
         int index = rand() % validMoves.size(); // 随机索引
         x = validMoves[index].first;
