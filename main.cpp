@@ -46,11 +46,14 @@ int main() {
 
     // 游戏主循环
     int lastX = -1, lastY = -1; // 记录最后一次落子的位置
+    ui.drawBoard(state, game); //绘制棋盘、悔棋按钮,显示回合数
     while (!state.isGameOver) {
-        Sleep(5);
+        Sleep(2);
+
+        game.isADraw(state);
 
         ui.drawBoard(state, game); //绘制棋盘、悔棋按钮,显示回合数
-        
+   
         // AI先手天元
         if (state.init_choice == 2 && game.turnnumber() == 0) {
             game.makeMove(state, BOARD_SIZE / 2, BOARD_SIZE / 2);

@@ -106,6 +106,8 @@ void Game::makeMove(GameState& state, int x, int y) {
         return; // 落子不合法，直接返回
     }
 
+    if (isADraw(state)) return;
+
     // 判断禁手
     bool is_forbidden = isForbiddenMove(state, x, y);
 
@@ -135,7 +137,7 @@ void Game::makeMove(GameState& state, int x, int y) {
         state.winner = 2; // 白方获胜
         return;
     }
-    //std::cout << "目前是" << state.currentPlayer << "落子,不是禁手" << std::endl;
+    /*std::cout << "目前是" << state.currentPlayer << "落子,不是禁手" << std::endl;*/
 
     return;
 }
@@ -652,4 +654,18 @@ bool Game::isForbiddenMove(GameState& state, int x, int y) {
 
     // 如果没有形成任何禁手，则返回 false
     return false;
+}
+
+bool Game::isADraw(GameState& state) {
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        for (int j = 0; j < BOARD_SIZE; ++j) {
+            if (state.board[i][j] == 0) {
+                //if (isForbiddenMove(state, i, j)) continue;
+                return false;
+            }
+        }
+    }
+    state.winner = 3;
+    state.isGameOver = true;
+    return true;
 }

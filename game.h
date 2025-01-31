@@ -14,7 +14,7 @@ public:
     std::vector<std::vector<int>> board; // 棋盘状态（0: 空, 1: 黑子, 2: 白子, 3: 禁手（这个设定被放弃了））
     int currentPlayer; // 当前玩家（1: 黑方, 2: 白方）
     bool isGameOver; // 游戏是否结束
-    int winner; // 胜利者（0: 未结束, 1: 黑方胜利, 2: 白方胜利）
+    int winner; // 胜利者（0: 未结束, 1: 黑方胜利, 2: 白方胜利, 3: 平局）
     int init_choice; //玩家初始选择
     // 最近一次落子的位置
     int lastMoveX; // 初始值为 -1，表示没有落子
@@ -82,6 +82,9 @@ public:
 
     // 判断是否胜利
     bool checkWin(GameState& state, int x, int y);
+
+    // 判断是否平局
+    bool isADraw(GameState& state);
 
     // 在指定位置放置棋子
     void setStone(GameState& state, int x, int y, int cStone);
